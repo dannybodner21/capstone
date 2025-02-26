@@ -48,6 +48,7 @@ export default function App() {
   const [exportData, setExportData] = useState("");
   const [isImportPopupVisible, setIsImportPopupVisible] = useState(false);
   const [importData, setImportData] = useState("");
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   // get the entity name for properties popup
   const selectedEntity = nodes.find((node) => node.id === selectedNodeId);
@@ -171,6 +172,7 @@ export default function App() {
 
   // show export popup
   const showExportPopup = () => {
+    setIsMenuOpen(false);
     const apiSchema = generateOpenAPI();
     setExportData(apiSchema);
     setIsExportPopupVisible(true);
@@ -310,6 +312,7 @@ export default function App() {
 
     setNodes((nds) => [...nds, newNode]);
     setEntityLabel("");
+    setIsMenuOpen(false);
   };
 
   // import OpenAPI JSON function
@@ -385,6 +388,12 @@ export default function App() {
 
   return (
     <div style={{ width: "100vw", height: "100vh", display: "flex" }}>
+
+    {/* title bar for mobile */}
+    <div className="title-bar">
+      <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="menu-button">☰</button>
+      <h2 className="title-text">OpenAPI Engineer</h2>
+    </div>
 
     {/* properties popup --------------------------------------------------- */}
     {isSidebarVisible && (
@@ -1227,11 +1236,16 @@ export default function App() {
 
 
     {/* left sidebar ------------------------------------------------------- */}
-    <div className="left-sidebar">
+
+    <div className={`left-sidebar ${isMenuOpen ? "open" : ""}`}>
+
+      {/* close button for mobile */}
+      <button className="close-sidebar-button" onClick={() => setIsMenuOpen(false)}><strong>X</strong></button>
 
       {/* sidebar header section */}
       <div className="sidebar-header">
-        {/* create entity label */}
+
+        {/* header label */}
         <label
           className="header-main"
         >
@@ -1243,7 +1257,7 @@ export default function App() {
       <div className="sidebar-content">
 
         {/* div for entity details */}
-        <div>
+        <div className="entity-details-div">
           {/* create entity label */}
           <label
             className="header-one"
@@ -1370,7 +1384,16 @@ export default function App() {
 
           {/* add path button */}
           <button
-            onClick={() => setIsPathPopupVisible(true)}
+            onClick={() => {
+              setIsMenuOpen(false);
+
+              // if on mobile, delay the popup until the sidebar is closed
+              if (window.innerWidth < 768) {
+                setTimeout(() => setIsPathPopupVisible(true), 300);
+              } else {
+                setIsPathPopupVisible(true);
+              }
+            }}
             className="button-one"
           >
             + Add Path
@@ -1385,7 +1408,10 @@ export default function App() {
 
         {/* import OpenAPI json button */}
         <button
-            onClick={() => setIsImportPopupVisible(true)}
+            onClick={() => {
+              setIsMenuOpen(false);
+              setIsImportPopupVisible(true)
+            }}
             className="export-button import-button"
         >
             <strong>Import JSON</strong>
@@ -1501,7 +1527,6 @@ export default function App() {
           </div>
         </div>
       )}
-
 
     {/* main ReactFlow container */}
     <div style={{ flexGrow: 1 }}>

@@ -40,7 +40,6 @@
 .left-sidebar {
   width: 300px;
   padding: 20px;
-  background: #f0f0f0;
   background: #fcfcfc;
   border-right: 0.5px solid black;
   display: flex;
@@ -158,4 +157,141 @@
   justify-content: space-between;
   margin-bottom: 5px;
   margin-right: 10px;
+}
+
+.title-bar {
+  display: none;
+}
+
+.close-sidebar-button {
+  display: none;
+}
+
+
+
+
+
+
+@media (max-width: 768px) {
+
+  .title-bar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 80px;
+    background: white;
+    box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.1);
+    z-index: 10;
+  }
+
+  .menu-button {
+    position: absolute;
+    left: 20px;
+    background: white;
+    border: none;
+    font-size: 30px;
+    color: black;
+    padding: 10px 15px;
+    border-radius: 5px;
+    z-index: 11;
+  }
+
+  .title-text {
+    font-size: 25px;
+    font-weight: bold;
+  }
+
+  .left-sidebar {
+    position: fixed;
+    width: 100vw;
+    height: 100vh;
+    bottom: 0;
+    left: 0;
+    background-color: white;
+    box-shadow: 0px -2px 10px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s ease-in-out;
+    transform: translateY(100%);
+    z-index: 10;
+    text-align: center;
+  }
+
+  .left-sidebar.open {
+    transform: translateY(0);
+  }
+
+  .close-sidebar-button {
+    display: block;
+    position: absolute;
+    top: 64px;
+    left: 30px;
+    background: white;
+    border: 0.5px solid red;
+    font-size: 26px;
+    font-weight: bold;
+    cursor: pointer;
+    color: red;
+    z-index: 1100;
+    width: 50px;
+    height: 50px;
+    border-radius: 8px;
+  }
+
+  .sidebar-header {
+    text-align: center;
+    padding: 50px 0px 30px 0px;
+    width: 90%;
+    margin-bottom: 15px;
+    border-bottom: 0.5px solid black;
+  }
+
+  .sidebar-content {
+    flex: 1;
+    overflow-y: auto;
+    width: 90%;
+  }
+
+  .entity-details-div {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .sidebar-path-div {
+    margin-top: 35px;
+    padding-top: 40px;
+    border-top: 0.5px solid black;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .sidebar-footer {
+    border-top: 0.5px solid black;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 90%;
+  }
+
+  .export-button {
+    width: 40%;
+    padding: 15px;
+    background: #58bf6b;
+    color: white;
+    font-size: 18px;
+    border-radius: 5px;
+    cursor: pointer;
+    border: none;
+    margin-top: 40px;
+    margin-left: 20px;
+    margin-right: 20px;
+  }
+
+  .import-button {
+    background: #1ca7e8;
+  }
 }
