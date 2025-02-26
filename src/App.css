@@ -1,0 +1,161 @@
+.App {
+  text-align: center;
+}
+
+.App-logo {
+  height: 40vmin;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .App-logo {
+    animation: App-logo-spin infinite 20s linear;
+  }
+}
+
+.App-header {
+  background-color: #282c34;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: calc(10px + 2vmin);
+  color: white;
+}
+
+.App-link {
+  color: #61dafb;
+}
+
+@keyframes App-logo-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.left-sidebar {
+  width: 300px;
+  padding: 20px;
+  background: #f0f0f0;
+  background: #fcfcfc;
+  border-right: 0.5px solid black;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 4px 0 8px rgba(0, 0, 0, 0.1);
+}
+
+.sidebar-header {
+  text-align: center;
+  padding: 30px 0px 30px 0px;
+  min-width: 300px;
+  margin-bottom: 75px;
+  border-bottom: 0.5px solid black;
+}
+
+.sidebar-content {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.sidebar-footer {
+  border-top: 0.5px solid black;
+}
+
+.export-button {
+  width: 297px;
+  padding: 10px;
+  background: #58bf6b;
+  color: white;
+  font-size: 18px;
+  border-radius: 5px;
+  cursor: pointer;
+  border: none;
+  margin-top: 40px;
+}
+
+.export-button:hover {
+  background: #05801c;
+}
+
+.import-button {
+  background: #1ca7e8;
+}
+
+.import-button:hover {
+  background: #1665cc;
+}
+
+.button-one {
+  width: 297px;
+  padding: 10px;
+  background: #454545;
+  color: white;
+  font-size: 18px;
+  border-radius: 5px;
+  cursor: pointer;
+  border: none;
+  margin-top: 20px;
+}
+
+.button-one:hover {
+  background: black;
+}
+
+.button-two {
+  width: 100%;
+}
+
+.header-main {
+  width: 100%;
+  font-size: 32px;
+}
+
+.header-one {
+  width: 275px;
+  padding: 10px;
+  margin-top: 20px;
+  margin-bottom: 10px;
+  font-size: 20px;
+  text-align: left;
+}
+
+.text-input {
+  width: 275px;
+  padding: 10px;
+  margin-top: 20px;
+  margin-bottom: 0px;
+  font-size: 14px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+}
+
+.sidebar-path-div {
+  margin-top: 35px;
+  padding-top: 40px;
+  border-top: 0.5px solid black;
+}
+
+.saved-paths-div {
+  width: 275px;
+  margin-top: 20px;
+  border: 0.5px solid black;
+  border-radius: 5px;
+  fontSize: 13px;
+  padding: 10px;
+  background: white;
+
+}
+
+.saved-path-item {
+  width:100%;
+  height:30px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 5px;
+  margin-right: 10px;
+}
