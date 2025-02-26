@@ -226,7 +226,7 @@
   .close-sidebar-button {
     display: block;
     position: absolute;
-    top: 64px;
+    top: 120px;
     left: 30px;
     background: white;
     border: 0.5px solid red;
@@ -242,10 +242,14 @@
 
   .sidebar-header {
     text-align: center;
-    padding: 50px 0px 30px 0px;
+    padding: 120px 0px 30px 0px;
     width: 90%;
     margin-bottom: 15px;
     border-bottom: 0.5px solid black;
+  }
+
+  .header-main {
+    font-size: 4.5vw;
   }
 
   .sidebar-content {
@@ -275,14 +279,16 @@
     justify-content: space-between;
     align-items: center;
     width: 90%;
+    padding-bottom: 50px;
   }
 
   .export-button {
     width: 40%;
-    padding: 15px;
+    min-height: 50px;
+    padding: 10px;
     background: #58bf6b;
     color: white;
-    font-size: 18px;
+    font-size: 12px;
     border-radius: 5px;
     cursor: pointer;
     border: none;
