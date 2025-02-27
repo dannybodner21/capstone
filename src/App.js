@@ -417,44 +417,17 @@ export default function App() {
       >
         <div
           style={{
-            width: "60vw",
-            maxWidth: "550px",
-            height: "auto",
-            maxHeight: "750px",
-            padding: "20px",
-            background: "white",
-            border: "1px solid black",
-            position: "absolute",
-            left: "50%",
-            top: "50%" ,
-            transform: "translate(-50%, -50%)",
-            transition: "opacity 0.3s ease-in-out",
             display: isSidebarVisible ? "block" : "none",
-            zIndex: "10",
-            borderRadius: "10px",
-            boxShadow: "2px 2px 10px rgba(0,0,0,0.3)",
+          }}
+          className="property-popup"
+          style={{
+            height: "auto",
           }}
         >
 
           <button
             onClick={closeSidebar}
-            style={{
-              position: "absolute",
-              top: "15px",
-              right: "15px",
-              background: "red",
-              color: "white",
-              border: "none",
-              padding: "5px",
-              borderRadius: "5px",
-              fontSize: "14px",
-              cursor: "pointer",
-              width: "24px",
-              height: "24px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
+            className="close-popup-button"
           >
             <strong>X</strong>
           </button>
@@ -463,7 +436,7 @@ export default function App() {
             color: "black",
             textAlign: "center",
             marginTop: "10px",
-            fontSize: "24px",
+            fontSize: "22px",
           }}>
             Add Property to {selectedEntity ? selectedEntity.data.label : "Entity"}
           </h4>
@@ -610,21 +583,7 @@ export default function App() {
 
         {/* white popup */}
         <div
-          style={{
-            position: "fixed",
-            top: "50%",
-            left: "50%",
-            transform: "translate(-50%, -50%)",
-            background: "white",
-            padding: "0px 20px 0px 20px",
-            borderRadius: "8px",
-            boxShadow: "0px 4px 6px rgba(0,0,0,0.1)",
-            textAlign: "left",
-            minWidth: "500px",
-            maxWidth: "80vw",
-            maxHeight: "80vh",
-            overflowY: "auto",
-          }}
+          className="path-popup"
         >
 
         {/* sticky header */}
@@ -645,44 +604,40 @@ export default function App() {
           {/* close path popup button */}
           <button
             onClick={() => setIsPathPopupVisible(false)}
-            style={{
-              position: "absolute",
-              top: "20px",
-              right: "25px",
-              background: "red",
-              color: "white",
-              border: "none",
-              padding: "10px",
-              borderRadius: "5px",
-              fontSize: "14px",
-              cursor: "pointer",
-              width: "30px",
-              height: "30px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
+            className="close-popup-button"
           >
             <strong>X</strong>
           </button>
 
-          <h3 style={{ textAlign: "center", }}>Add API Path</h3>
+          <h3
+            style={{
+              textAlign: "center",
+              fontSize: "22px",
+            }}
+          >
+            Add API Path
+          </h3>
 
         </div>
 
           {/* path form content */}
-          <div>
-
-
-
+          <div
+            style={{
+              textAlign: "left",
+              width: "100%",
+            }}
+          >
 
             {/* path endpoint */}
-            <div>
+            <div
+              style={{
+                paddingTop: "15px",
+              }}
+            >
               <label
                 style={{
                   width: "90%",
-                  marginTop: "15px",
-                  fontSize: "16px",
+                  fontSize: "14px",
                   textAlign: "left",
                 }}
               >
@@ -694,7 +649,7 @@ export default function App() {
                 onChange={(e) => setNewPath(e.target.value)}
                 placeholder="/example-path"
                 style={{
-                  width: "90%",
+                  width: "95%",
                   marginTop: "15px",
                   marginBottom: "20px",
                   padding: "8px",
@@ -708,11 +663,15 @@ export default function App() {
 
             {/* HTTP method dropdown */}
             {/* GET,POST,PUT,DELETE,PATCH */}
-            <div>
+            <div
+              style={{
+                paddingTop: "15px",
+              }}
+            >
               <label
                 style={{
                   width: "90%",
-                  fontSize: "16px",
+                  fontSize: "14px",
                   textAlign: "left",
                 }}
               >
@@ -722,7 +681,7 @@ export default function App() {
                 value={httpMethod}
                 onChange={(e) => setHttpMethod(e.target.value)}
                 style={{
-                  width: "90%",
+                  width: "99%",
                   padding: "8px",
                   marginTop: "15px",
                   marginBottom: "20px",
@@ -743,12 +702,15 @@ export default function App() {
             </div>
 
             {/* path summary */}
-            <div>
+            <div
+              style={{
+                paddingTop: "15px",
+              }}
+            >
               <label
                 style={{
                   width: "90%",
-                  marginTop: "15px",
-                  fontSize: "16px",
+                  fontSize: "14px",
                   textAlign: "left",
                 }}
               >
@@ -760,7 +722,7 @@ export default function App() {
                 onChange={(e) => setPathSummary(e.target.value)}
                 placeholder="Short description of the endpoint"
                 style={{
-                  width: "90%",
+                  width: "95%",
                   marginTop: "15px",
                   marginBottom: "20px",
                   padding: "8px",
@@ -772,13 +734,16 @@ export default function App() {
             </div>
 
             {/* path description - optional */}
-            <div>
+            <div
+              style={{
+                paddingTop: "15px",
+              }}
+            >
               <label
                 style={{
                   width: "90%",
-                  marginTop: "15px",
                   padding: "8px",
-                  fontSize: "16px",
+                  fontSize: "14px",
                   textAlign: "left",
                 }}
               >
@@ -789,7 +754,7 @@ export default function App() {
                 onChange={(e) => setPathDescription(e.target.value)}
                 placeholder="Detailed description of this API path"
                 style={{
-                  width: "90%",
+                  width: "95%",
                   marginTop: "15px",
                   padding: "8px",
                   marginBottom: "20px",
@@ -803,12 +768,15 @@ export default function App() {
             </div>
 
             {/* path operation id - optional */}
-            <div>
+            <div
+              style={{
+                paddingTop: "15px",
+              }}
+            >
               <label
                 style={{
                   width: "90%",
-                  marginTop: "15px",
-                  fontSize: "16px",
+                  fontSize: "14px",
                   textAlign: "left",
                 }}
               >
@@ -820,7 +788,7 @@ export default function App() {
                 onChange={(e) => setOperationId(e.target.value)}
                 placeholder="Unique identifier for this API operation"
                 style={{
-                  width: "90%",
+                  width: "95%",
                   marginTop: "15px",
                   marginBottom: "20px",
                   padding: "8px",
@@ -833,12 +801,15 @@ export default function App() {
             </div>
 
             {/* path tag - optional */}
-            <div>
+            <div
+              style={{
+                paddingTop: "15px",
+              }}
+            >
               <label
                 style={{
                   width: "90%",
-                  marginTop: "15px",
-                  fontSize: "16px",
+                  fontSize: "14px",
                   textAlign: "left",
                 }}
               >
@@ -850,7 +821,7 @@ export default function App() {
                 onChange={(e) => setPathTag(e.target.value)}
                 placeholder="Category for this endpoint (e.g., Users, Orders)"
                 style={{
-                  width: "90%",
+                  width: "95%",
                   marginTop: "15px",
                   marginBottom: "20px",
                   padding: "8px",
@@ -863,17 +834,20 @@ export default function App() {
             </div>
 
             {/* path parameters - optional */}
-            <div style={{ marginTop: "20px" }}>
+            <div
+              style={{
+                marginTop: "15px",
+              }}
+            >
 
               <label
                 style={{
                   width: "90%",
-                  marginTop: "15px",
                   fontSize: "16px",
                   textAlign: "left",
                 }}
               >
-                Parameters:
+                <strong>Parameters:</strong>
               </label>
 
               {/* show path parameter details */}
@@ -1045,13 +1019,13 @@ export default function App() {
                             height: "auto",
                             cursor: "pointer",
                             marginLeft: "8px",
+                            fontSize: "10px",
                             padding: "5px 12px 5px 12px",
                           }}
                         >
                           Delete Parameter
                         </button>
                       </div>
-
 
                     </div>
                   ))
@@ -1062,19 +1036,7 @@ export default function App() {
               {/* add parameter button */}
               <button
                 onClick={addParameter}
-                style={{
-                  padding: "8px",
-                  backgroundColor: "white",
-                  border: "1px solid black",
-                  color: "black",
-                  fontSize: "16px",
-                  borderRadius: "5px",
-                  cursor: "pointer",
-                  marginTop: "10px",
-                  width: "80%",
-                  marginLeft: "50px",
-                  marginBottom: "50px",
-                }}
+                className="add-parameter-button"
               >
                 + Add Parameter
               </button>
@@ -1128,23 +1090,7 @@ export default function App() {
           }}
         >
           <div
-            style={{
-              position: "fixed",
-              top: "50%",
-              left: "50%",
-              transform: "translate(-50%, -50%)",
-              background: "white",
-              padding: "20px",
-              borderRadius: "8px",
-              boxShadow: "0px 4px 6px rgba(0,0,0,0.1)",
-              minWidth: "500px",
-              maxWidth: "80vw",
-              maxHeight: "80vh",
-              overflowY: "auto",
-              textAlign: "center",
-              display: "flex",
-              flexDirection: "column",
-            }}
+            className="export-popup"
           >
             <div
               style={{
@@ -1162,23 +1108,7 @@ export default function App() {
               {/* close popup button */}
               <button
                 onClick={closeExportPopup}
-                style={{
-                  position: "absolute",
-                  top: "20px",
-                  right: "25px",
-                  background: "red",
-                  color: "white",
-                  border: "none",
-                  padding: "10px",
-                  borderRadius: "5px",
-                  fontSize: "14px",
-                  cursor: "pointer",
-                  width: "30px",
-                  height: "30px",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
+                className="close-popup-button"
               >
                 <strong>X</strong>
               </button>
@@ -1448,52 +1378,26 @@ export default function App() {
         >
           {/* white popup div */}
           <div
-            style={{
-              position: "fixed",
-              top: "50%",
-              left: "50%",
-              transform: "translate(-50%, -50%)",
-              background: "white",
-              padding: "20px",
-              borderRadius: "8px",
-              boxShadow: "0px 4px 6px rgba(0,0,0,0.1)",
-              minWidth: "500px",
-              maxWidth: "80vw",
-              maxHeight: "80vh",
-              minHeight: "500px",
-              overflowY: "auto",
-              textAlign: "center",
-              display: "flex",
-              flexDirection: "column",
-            }}
+            className="import-popup"
           >
 
             {/* close import popup button */}
             <button
               onClick={() => setIsImportPopupVisible(false)}
-              style={{
-                position: "absolute",
-                top: "20px",
-                right: "25px",
-                background: "red",
-                color: "white",
-                border: "none",
-                padding: "10px",
-                borderRadius: "5px",
-                fontSize: "14px",
-                cursor: "pointer",
-                width: "30px",
-                height: "30px",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
+              className="close-popup-button"
             >
               <strong>X</strong>
             </button>
 
             {/* header */}
-            <h3 style={{ textAlign: "center" }}>Import OpenAPI JSON</h3>
+            <h3
+              style={{
+                textAlign: "center",
+                fontSize: "22px",
+              }}
+            >
+              Import OpenAPI JSON
+            </h3>
 
             {/* textbox for JSON */}
             <textarea
@@ -1502,7 +1406,8 @@ export default function App() {
               placeholder="Paste your JSON here..."
               style={{
                 width: "95%",
-                height: "350px",
+                flexGrow: "1",
+                overflowY: "auto",
                 marginTop: "20px",
                 padding: "10px",
                 borderRadius: "5px",
@@ -1513,7 +1418,7 @@ export default function App() {
             <div style={{
               marginTop: "20px",
               display: "flex",
-              justifyContent: "space-between",
+              justifyContent: "center",
             }}>
               <button
                 onClick={importOpenAPI}

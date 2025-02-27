@@ -113,6 +113,48 @@
   font-size: 32px;
 }
 
+.close-popup-button {
+  position: absolute;
+  top: 20px;
+  right: 25px;
+  background: white;
+  color: red;
+  border: 1px solid red;
+  padding: 10px;
+  border-radius: 5px;
+  font-size: 14px;
+  cursor: pointer;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.close-popup-button:hover {
+  background: red;
+  color: white;
+}
+
+.add-parameter-button {
+  padding: 8px;
+  background-color: white;
+  border: 1px solid black;
+  color: black;
+  font-size: 16px;
+  border-radius: 5px;
+  cursor: pointer;
+  margin-top: 10px;
+  width: 80%;
+  margin-left: 50px;
+  margin-bottom: 50px;
+}
+
+.add-parameter-button:hover {
+  background-color: black;
+  color: white;
+}
+
 .header-one {
   width: 275px;
   padding: 10px;
@@ -165,6 +207,78 @@
 
 .close-sidebar-button {
   display: none;
+}
+
+.path-popup {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: white;
+  padding: 0px 20px 0px 20px;
+  borderRadius: 10px;
+  boxShadow: 0px 4px 6px rgba(0,0,0,0.1);
+  textAlign: left;
+  minWidth: 500px;
+  maxWidth: 80vw;
+  maxHeight: 80vh;
+  overflowY: auto;
+}
+
+.property-popup {
+  width: 60vw;
+  max-width: 550px;
+  height: auto;
+  max-height: 750px;
+  padding: 20px;
+  background: white;
+  border: 1px solid black;
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  transition: opacity 0.3s ease-in-out;
+  /*display: isSidebarVisible ? block : none;*/
+  z-index: 10;
+  border-radius: 10px;
+  box-shadow: 2px 2px 10px rgba(0,0,0,0.3);
+}
+
+.export-popup {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0px 4px 6px rgba(0,0,0,0.1);
+  min-width: 500px;
+  max-width: 80vw;
+  max-height: 80vh;
+  text-align: center;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.import-popup {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0px 4px 6px rgba(0,0,0,0.1);
+  min-width: 500px;
+  max-width: 80vw;
+  max-height: 80vh;
+  min-height: 500px;
+  overflow-y: auto;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
 }
 
 
@@ -229,18 +343,23 @@
   .close-sidebar-button {
     display: block;
     position: absolute;
-    top: 120px;
+    top: 140px;
     left: 30px;
     background: white;
     border: 0.5px solid red;
-    font-size: 26px;
+    font-size: 24px;
     font-weight: bold;
     cursor: pointer;
     color: red;
     z-index: 1100;
-    width: 50px;
-    height: 50px;
+    width: 40px;
+    height: 40px;
     border-radius: 8px;
+  }
+
+  .close-sidebar-button:hover {
+    background: red;
+    color: white;
   }
 
   .sidebar-header {
@@ -303,4 +422,37 @@
   .import-button {
     background: #1ca7e8;
   }
+
+  .path-popup {
+    width: 80vw;
+    height: 75vh;
+    overflow-y: auto;
+    border-radius: 10px;
+  }
+
+  .property-popup {
+    width: 80vw;
+    height: 75vh;
+    overflow-y: auto;
+    border-radius: 10px;
+  }
+
+  .export-popup {
+    max-width: 80vw;
+    height: 75vh;
+    overflow-y: auto;
+    border-radius: 10px;
+    font-size: 10px;
+    min-width: 75vw;
+  }
+
+  .import-popup {
+    max-width: 80vw;
+    height: 75vh;
+    overflow-y: auto;
+    border-radius: 10px;
+    font-size: 10px;
+    min-width: 75vw;
+  }
+
 }
