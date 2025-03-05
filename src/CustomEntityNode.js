@@ -47,15 +47,21 @@ const CustomEntityNode = ({ id, data, isConnectable }) => {
                 }}
                 key={index}
               >
-                <span>
-                  {prop.name} <span style={{ fontSize: "14px", fontStyle: "italic", color: "gray" }}>({prop.type})</span>
+                <span style={{ fontSize: "14px", color: "black" }}>
+                  {prop.name}
+                  <span style={{ fontSize: "12px", fontStyle: "italic", color: "gray", paddingLeft: "5px" }}>
+                    ({typeof prop.type === "object" && prop.type.$ref
+                      ? `Reference to ${prop.type.$ref.replace("#/components/schemas/", "")}`
+                      : prop.type}
+                    )
+                  </span>
                 </span>
 
                 <button
                   onClick={() => data.onDeleteProperty(id, index)}
                   style={{
                     background: "white",
-                    color: "red",
+                    color: "#eb4034",
                     border: "none",
                     padding: "2px 6px",
                     fontSize: "14px",
@@ -99,8 +105,33 @@ const CustomEntityNode = ({ id, data, isConnectable }) => {
         + Add Property
       </button>
 
-      <Handle type="source" position={Position.Right} />
-      <Handle type="target" position={Position.Left} />
+      {/* connection point on bottom of nodes - outgoing connection */}
+      <Handle
+        type="source"
+        position={Position.Bottom}
+        style={{
+          //background: "#5cff59",
+          background: "white",
+          border: "0.5px solid black",
+          width: "8px",
+          height: "8px",
+          borderRadius: "50%",
+        }}
+      />
+
+      {/* connection point on top of nodes - incoming connection */}
+      <Handle
+        type="target"
+        position={Position.Top}
+        style={{
+          background: "white",
+          border: "0.5px solid black",
+          width: "8px",
+          height: "8px",
+          borderRadius: "50%",
+        }}
+      />
+
     </div>
   );
 };

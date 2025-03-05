@@ -118,8 +118,8 @@
   top: 20px;
   right: 25px;
   background: white;
-  color: red;
-  border: 1px solid red;
+  color: #eb4034;
+  border: 1px solid #eb4034;
   padding: 10px;
   border-radius: 5px;
   font-size: 14px;
@@ -132,7 +132,7 @@
 }
 
 .close-popup-button:hover {
-  background: red;
+  background: #eb4034;
   color: white;
 }
 
@@ -348,11 +348,11 @@
     top: 140px;
     left: 30px;
     background: white;
-    border: 0.5px solid red;
+    border: 0.5px solid #eb4034;
     font-size: 24px;
     font-weight: bold;
     cursor: pointer;
-    color: red;
+    color: #eb4034;
     z-index: 1100;
     width: 40px;
     height: 40px;
@@ -361,7 +361,7 @@
   }
 
   .close-sidebar-button:hover {
-    background: red;
+    background: #eb4034;
     color: white;
   }
 

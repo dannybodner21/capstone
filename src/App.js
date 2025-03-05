@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useState, useEffect } from 'react';
 import {
   ReactFlow,
   MiniMap,
@@ -98,6 +98,7 @@ export default function App() {
 
     // create paths
     paths.forEach((path) => {
+
       const method = path.method.toLowerCase();
       // Create the path if it doesn't exist
       if (!schema.paths[path.path]) {
@@ -147,8 +148,10 @@ export default function App() {
 
     // create entities
     nodes.forEach((node) => {
+
       const entityLabel = node.data.label;
-      // Create an object for each entity
+
+      // create an object for each entity
       schema.components.schemas[entityLabel] = {
         type: "object",
         properties: {},
@@ -156,12 +159,33 @@ export default function App() {
 
       if (node.data.properties && node.data.properties.length > 0) {
         node.data.properties.forEach((prop) => {
-          schema.components.schemas[entityLabel].properties[prop.name] = {
-            type: prop.type.toLowerCase(),
-          };
+
+          // make sure object exists
+          if (!schema.components.schemas[entityLabel].properties) {
+            schema.components.schemas[entityLabel].properties = {};
+          }
+
+          // if property is a reference to a user object, store as reference
+          if (typeof prop.type === "object" && prop.type.$ref) {
+            schema.components.schemas[entityLabel].properties[prop.name] = {
+              $ref: prop.type.$ref,
+            };
+          }
+          else if (typeof prop.type === "string") {
+            schema.components.schemas[entityLabel].properties[prop.name] = {
+              type: prop.type.toLowerCase(),
+            };
+          }
+          else {
+            schema.components.schemas[entityLabel].properties[prop.name] = {
+              type: "string",
+            };
+          }
+
           if (prop.description) {
             schema.components.schemas[entityLabel].properties[prop.name].description = prop.description;
           }
+
         });
       }
     });
@@ -252,6 +276,10 @@ export default function App() {
   const addPropertyToNode = () => {
     if (!selectedNodeId || propertyText.trim() === "") return;
 
+    // check if the selected type is a reference to a user object or not
+    const isCustomType = nodes.some((n) => n.data.label === propertyType);
+    const referencedNode = nodes.find((n) => n.data.label === propertyType);
+
     setNodes((prevNodes) =>
       prevNodes.map((node) =>
         node.id === selectedNodeId
@@ -263,8 +291,10 @@ export default function App() {
                 ...(node.data.properties || []),
                 {
                   name: propertyText,
-                  type: propertyType,
-                  description: propertyDescription
+                  type: isCustomType
+                    ? { $ref: `#/components/schemas/${propertyType}` } // reference to user generated object node
+                    : propertyType, // normal primitive type -> Int, Bool, etc.
+                  description: propertyDescription,
                 },
               ],
             },
@@ -272,6 +302,22 @@ export default function App() {
         : node
       )
     );
+
+    // if the property is a refernce to another object, connect them
+    if (referencedNode) {
+      setEdges((prevEdges) => [
+        ...prevEdges,
+        {
+          id: `edge-${selectedNodeId}-${referencedNode.id}`,
+          source: selectedNodeId,
+          target: referencedNode.id,
+          type: "smoothstep",
+          animated: false,
+          label: propertyText,
+          style: { stroke: "#888", strokeWidth: 2 },
+        },
+      ]);
+    }
 
     // clear inputs
     setPropertyText("");
@@ -297,12 +343,36 @@ export default function App() {
           : node
       )
     );
+
+    // find the property that was deleted
+    const deletedProperty = nodes.find((node) => node.id === nodeId)?.data?.properties[propertyIndex];
+
+    // if the deleted property was a reference to another object, remove the connection line
+    if (deletedProperty && typeof deletedProperty.type === "object" && deletedProperty.type.$ref) {
+      const referencedNodeLabel = deletedProperty.type.$ref.replace("#/components/schemas/", "");
+      const referencedNode = nodes.find((n) => n.data.label === referencedNodeLabel);
+
+      if (referencedNode) {
+        setEdges((prevEdges) =>
+          prevEdges.filter(
+            (edge) => !(edge.source === nodeId && edge.target === referencedNode.id)
+          )
+        );
+      }
+    }
   };
+
+  // function to capitalize first letter of entity names
+  const toPascalCase = (str) =>
+    str.charAt(0).toUpperCase() + str.slice(1);
 
   // add entity function
   const addEntityNode = () => {
     const newId = `node-${nodes.length + 1}`;
-    const label = entityLabel.trim() || `Entity ${nodes.length + 1}`;
+    const label = entityLabel.trim()
+      ? toPascalCase(entityLabel.trim())
+      : `Entity${nodes.length + 1}`;
+
     const newNode = {
       id: newId,
       type: "entity",
@@ -315,7 +385,11 @@ export default function App() {
     setIsMenuOpen(false);
   };
 
+
+
+
   // import OpenAPI JSON function
+  /*
   const importOpenAPI = () => {
     try {
       const schema = JSON.parse(importData);
@@ -354,7 +428,43 @@ export default function App() {
           }
         );
         setNodes(importedNodes);
+
+
+        // draw edges for nodes with references
+        // setting a small delay to make sure nodes are set before drawing lines
+        setTimeout(() => {
+          const importedEdges = [];
+          importedNodes.forEach((node) => {
+            node.data.properties.forEach((prop) => {
+              if (typeof prop.type === "object" && prop.type.$ref) {
+
+                // get name from $ref
+                const refSchemaName = prop.type.$ref.replace("#/components/schemas/", "");
+
+                // Find the target node by label
+                const targetNode = importedNodes.find((n) => n.data.label === refSchemaName);
+
+                if (targetNode) {
+                  importedEdges.push({
+                    id: `edge-${node.id}-${targetNode.id}`,
+                    source: node.id,
+                    target: targetNode.id,
+                    type: "smoothstep",
+                    animated: false,
+                    label: prop.name,
+                    style: { stroke: "#888", strokeWidth: 2 },
+                  });
+                }
+              }
+            });
+          });
+          setEdges(importedEdges);
+        }, 100);
+
+
       }
+
+
 
       // create paths
       if (schema.paths) {
@@ -382,8 +492,85 @@ export default function App() {
       alert("Error importing JSON: " + error.message);
     }
   };
+  */
 
 
+  const [importedNodes, setImportedNodes] = useState([]);
+  const [importedEdges, setImportedEdges] = useState([]);
+
+  const importOpenAPI = () => {
+    try {
+      const schema = JSON.parse(importData);
+
+      // validate OpenAPI description
+      if (!schema.openapi || !schema.info || !schema.components?.schemas) {
+        alert("Invalid OpenAPI schema.");
+        return;
+      }
+
+      // create object nodes
+      const nodes = Object.entries(schema.components.schemas).map(([schemaName, schemaData], index) => ({
+        id: `node-${index + 1}`,
+        type: "entity",
+        position: { x: Math.random() * 400, y: Math.random() * 400 },
+        data: {
+          label: schemaName,
+          properties: schemaData.properties
+            ? Object.entries(schemaData.properties).map(([propName, propData]) => ({
+                name: propName,
+                type: propData.$ref ? { $ref: propData.$ref } : propData.type || "string",
+                description: propData.description || "",
+              }))
+            : [],
+        },
+      }));
+
+      // store nodes
+      setImportedNodes(nodes);
+      // add nodes to ReactFlow
+      setNodes(nodes);
+
+      // clear input and close import popup
+      setImportData("");
+      setIsImportPopupVisible(false);
+
+    } catch (error) {
+      console.error("Error importing JSON: ", error);
+      alert("Error importing JSON: " + error.message);
+    }
+  };
+
+  // add relationship lines, if there are any
+  useEffect(() => {
+    if (importedNodes.length > 0) {
+      const edges = [];
+      importedNodes.forEach((node) => {
+        node.data.properties.forEach((prop) => {
+          if (typeof prop.type === "object" && prop.type.$ref) {
+            const refSchemaName = prop.type.$ref.replace("#/components/schemas/", "");
+
+            // find the target node by label
+            const targetNode = importedNodes.find((n) => n.data.label === refSchemaName);
+
+            if (targetNode) {
+              edges.push({
+                id: `edge-${node.id}-${targetNode.id}`,
+                source: node.id,
+                target: targetNode.id,
+                type: "smoothstep",
+                animated: false,
+                label: prop.name,
+                style: { stroke: "#888", strokeWidth: 2 },
+              });
+            }
+          }
+        });
+      });
+
+      setEdges(edges);
+    }
+    // run after nodes are updated
+  }, [importedNodes]);
 
 
   return (
@@ -510,8 +697,18 @@ export default function App() {
               }}
             >
               <option value="String">String</option>
+              <option value="integer">Integer</option>
               <option value="Float">Float</option>
               <option value="Boolean">Boolean</option>
+              {/* add in user created objects */}
+              <option disabled>──────────</option>
+              {nodes
+                .filter((node) => node.id !== selectedNodeId) // prevent self-reference
+                .map((node) => (
+                  <option key={node.id} value={node.data.label}>
+                    {node.data.label} (Custom Type)
+                  </option>
+              ))}
             </select>
           </div>
 
@@ -1012,8 +1209,8 @@ export default function App() {
                           onClick={() => removeParameter(index)}
                           style={{
                             background: "white",
-                            color: "red",
-                            border: "1px solid red",
+                            color: "#eb4034",
+                            border: "1px solid #eb4034",
                             borderRadius: "5px",
                             width: "auto",
                             height: "auto",
@@ -1253,7 +1450,7 @@ export default function App() {
                       onClick={() => deletePath(index)}
                       style={{
                         background: "white",
-                        color: "red",
+                        color: "#eb4034",
                         border: "none",
                         padding: "2px 6px",
                         fontSize: "14px",
