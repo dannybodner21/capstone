@@ -11,6 +11,7 @@ import {
 import '@xyflow/react/dist/style.css';
 import CustomEntityNode from './CustomEntityNode';
 import './App.css';
+import yaml from "js-yaml";
 
 const nodeTypes = {
   entity: (props) => (
@@ -36,8 +37,16 @@ export default function App() {
   const [propertyText, setPropertyText] = useState("");
   const [propertyType, setPropertyType] = useState("String");
   const [propertyDescription, setPropertyDescription] = useState("");
+  const [propertyExample, setPropertyExample] = useState("");
+  const [isArray, setIsArray] = useState(false);
+  const [editingPropertyIndex, setEditingPropertyIndex] = useState(null);
+  const [isEnum, setIsEnum] = useState(false);
+  const [enumValues, setEnumValues] = useState("");
   const [paths, setPaths] = useState([]);
   const [newPath, setNewPath] = useState("");
+  const [isEntitySectionOpen, setIsEntitySectionOpen] = useState(false);
+  const [isPathsSectionOpen, setIsPathsSectionOpen] = useState(false);
+  const [expandedPathIndex, setExpandedPathIndex] = useState(null);
   const [httpMethod, setHttpMethod] = useState("GET");
   const [pathSummary, setPathSummary] = useState("");
   const [pathDescription, setPathDescription] = useState("");
@@ -49,6 +58,18 @@ export default function App() {
   const [isImportPopupVisible, setIsImportPopupVisible] = useState(false);
   const [importData, setImportData] = useState("");
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [openAPIMetadata, setOpenAPIMetadata] = useState({
+    title: "Sample API Title",
+    version: "3.0.0",
+    description: "Optional multiline or single-line description.",
+    license: "",
+    authors: "",
+    externalDocs: "",
+    servers: [{ url: "https://api.example.com/v1", description: "Production Server" }],
+  });
+  const [isMetadataOpen, setIsMetadataOpen] = useState(false);
+  const [exportFormat, setExportFormat] = useState("json"); // Default to JSON
+
 
   // get the entity name for properties popup
   const selectedEntity = nodes.find((node) => node.id === selectedNodeId);
@@ -58,28 +79,31 @@ export default function App() {
     [setEdges],
   );
 
+  // accordion stuff for the side bar
+  const toggleEntitySection = () => {
+    setIsEntitySectionOpen(!isEntitySectionOpen);
+  };
+
+  const togglePathsSection = () => {
+    setIsPathsSectionOpen(!isPathsSectionOpen);
+  };
+
   // generate OpenAPI report
   const generateOpenAPI = () => {
     if (nodes.length === 0) return "No data to export.";
 
     // create base OpenAPI schema
     const schema = {
-      openapi: "3.0.0",
+      openapi: "3.1.0",
       info: {
-        title: "Sample API Title",
-        version: "1.0.0",
-        description: "Optional multiline or single-line description.",
+        title: openAPIMetadata.title,
+        version: openAPIMetadata.version,
+        description: openAPIMetadata.description,
+        license: openAPIMetadata.license ? { name: openAPIMetadata.license } : undefined,
+        contact: openAPIMetadata.authors ? { name: openAPIMetadata.authors } : undefined,
       },
-      servers: [
-        {
-          url: "https://api.example.com/v1",
-          description: "Production Server",
-        },
-        {
-          url: "https://staging-api.example.com",
-          description: "Staging Server",
-        },
-      ],
+      externalDocs: openAPIMetadata.externalDocs ? { url: openAPIMetadata.externalDocs } : undefined,
+      servers: openAPIMetadata.servers,
       security: [
         { ApiKeyAuth: [] }
       ],
@@ -94,28 +118,33 @@ export default function App() {
         },
         schemas: {},
       },
+      nodePositions: {},
     };
 
     // create paths
     paths.forEach((path) => {
 
       const method = path.method.toLowerCase();
-      // Create the path if it doesn't exist
+
+      // create the path if it doesn't exist
       if (!schema.paths[path.path]) {
         schema.paths[path.path] = {};
       }
+
       schema.paths[path.path][method] = {
         summary: path.summary || "No summary",
         description: path.description || "No description",
-        operationId: path.operationId || "No operation Id",
-        tags: [path.tag || "No tag"],
+        operationId: path.operationId || `operation_${method}_${path.path.replace(/\W/g, '_')}`,
+        tags: path.tag ? [path.tag] : [],
+        parameters: [],
         responses: {
           "200": {
             description: "Successful response",
             content: {
               "application/json": {
                 schema: {
-                  $ref: "#/components/schemas/User",
+                  type: "object",
+                  properties: {},
                 },
               },
             },
@@ -127,29 +156,32 @@ export default function App() {
         },
       };
 
-      // If there are parameters, add them as an array
+      // if there are parameters, add them as an array
       if (path.parameters && path.parameters.length > 0) {
-        schema.paths[path.path][method].parameters = path.parameters.map((param) => {
-          const paramObj = {
+        schema.paths[path.path][method].parameters = path.parameters.map((param) => ({
             name: param.name,
-            in: param.in,
-            required: param.required,
+            in: param.in || "query",
+            required: param.required || false,
             schema: {
-              type: param.type,
+              type: param.type || "string",
             },
-          };
-          if (param.description) {
-            paramObj.description = param.description;
-          }
-          return paramObj;
-        });
+            ...(param.description ? { description: param.description } : {}),
+        }));
       }
+
     });
 
     // create entities
     nodes.forEach((node) => {
 
+      let propertyDefinition;
       const entityLabel = node.data.label;
+
+      // save the node's screen positioning
+      schema.nodePositions[entityLabel] = {
+        x: node.position.x,
+        y: node.position.y
+      };
 
       // create an object for each entity
       schema.components.schemas[entityLabel] = {
@@ -167,37 +199,52 @@ export default function App() {
 
           // if property is a reference to a user object, store as reference
           if (typeof prop.type === "object" && prop.type.$ref) {
-            schema.components.schemas[entityLabel].properties[prop.name] = {
-              $ref: prop.type.$ref,
+
+            propertyDefinition = { $ref: prop.type.$ref };
+
+          } else if (typeof prop.type === "object" && prop.type.type === "array") {
+
+            // if it's an array, format it properly
+            propertyDefinition = {
+              type: "array",
+              items: prop.type.items.$ref
+                ? { $ref: prop.type.items.$ref }
+                : { type: prop.type.items.type },
             };
-          }
-          else if (typeof prop.type === "string") {
-            schema.components.schemas[entityLabel].properties[prop.name] = {
-              type: prop.type.toLowerCase(),
-            };
-          }
-          else {
-            schema.components.schemas[entityLabel].properties[prop.name] = {
-              type: "string",
-            };
+
+          } else if (typeof prop.type === "string") {
+
+            // primitive types
+            propertyDefinition = { type: prop.type.toLowerCase() };
+
+          } else {
+
+            // default value is string
+            propertyDefinition = { type: "string" };
+
           }
 
-          if (prop.description) {
-            schema.components.schemas[entityLabel].properties[prop.name].description = prop.description;
-          }
+          // add in any optional fields
+          if (prop.enum) propertyDefinition.enum = prop.enum;
+          if (prop.description) propertyDefinition.description = prop.description;
+          if (prop.example) propertyDefinition.example = prop.example;
+
+          // assign the propery to the given object schema
+          schema.components.schemas[entityLabel].properties[prop.name] = propertyDefinition;
 
         });
       }
     });
 
-    // convert object into a formatted JSON string
-    return JSON.stringify(schema, null, 2);
+    // return either YAML or JSON report
+    return exportFormat === "yaml" ? yaml.dump(schema) : JSON.stringify(schema, null, 2);
+    //return JSON.stringify(schema, null, 2);
   };
 
   // show export popup
   const showExportPopup = () => {
     setIsMenuOpen(false);
-    const apiSchema = generateOpenAPI();
+    const apiSchema = generateOpenAPI(exportFormat);
     setExportData(apiSchema);
     setIsExportPopupVisible(true);
   };
@@ -227,6 +274,11 @@ export default function App() {
         i === index ? { ...param, [key]: value } : param
       )
     );
+  };
+
+  // accordion style for the paths section
+  const togglePathDetails = (index) => {
+    setExpandedPathIndex(expandedPathIndex === index ? null : index);
   };
 
   // add an API path
@@ -262,7 +314,20 @@ export default function App() {
 
   // show property popup
   const toggleSidebar = (nodeId) => {
+
     setSelectedNodeId(nodeId);
+
+    // reset fields
+    setPropertyText("");
+    setPropertyType("String");
+    setPropertyDescription("");
+    setPropertyExample("");
+    setEnumValues("");
+    setIsEnum(false);
+    setIsArray(false);
+    setEditingPropertyIndex(null);
+
+    // show popup
     setIsSidebarVisible(true);
   };
 
@@ -276,57 +341,161 @@ export default function App() {
   const addPropertyToNode = () => {
     if (!selectedNodeId || propertyText.trim() === "") return;
 
-    // check if the selected type is a reference to a user object or not
+    // check if the selected type is a reference to a user defined object
     const isCustomType = nodes.some((n) => n.data.label === propertyType);
     const referencedNode = nodes.find((n) => n.data.label === propertyType);
+    const currentNode = nodes.find((n) => n.id === selectedNodeId);
+
+    // make sure enum values are formatted properly
+    let formattedEnum = null;
+    if (isEnum) {
+      formattedEnum = enumValues
+        .split(",")
+        .map((val) => val.trim())
+        .filter((val) => val.length > 0);
+    }
+
+    // if "isArray" is checked, wrap type inside an "items" field
+    let propertyTypeDefinition = isCustomType
+      ? { $ref: `#/components/schemas/${propertyType}` }
+      : propertyType;
+
+    if (isArray) {
+      propertyTypeDefinition = {
+        type: "array",
+        items: isCustomType
+          ? { $ref: `#/components/schemas/${propertyType}` }
+          : { type: propertyType },
+      };
+    }
 
     setNodes((prevNodes) =>
-      prevNodes.map((node) =>
-        node.id === selectedNodeId
-          ? {
+    prevNodes.map((node) =>
+      node.id === selectedNodeId
+        ? {
             ...node,
             data: {
               ...node.data,
-              properties: [
-                ...(node.data.properties || []),
-                {
-                  name: propertyText,
-                  type: isCustomType
-                    ? { $ref: `#/components/schemas/${propertyType}` } // reference to user generated object node
-                    : propertyType, // normal primitive type -> Int, Bool, etc.
-                  description: propertyDescription,
-                },
-              ],
+              properties: editingPropertyIndex !== null
+                ? node.data.properties.map((prop, index) =>
+                    index === editingPropertyIndex
+                      ? {
+                          name: propertyText,
+                          type: propertyTypeDefinition,
+                          description: propertyDescription,
+                          example: propertyExample,
+                          enum: formattedEnum && formattedEnum.length > 0 ? formattedEnum : undefined,
+                        }
+                      : prop
+                  )
+                : [
+                    ...(node.data.properties || []),
+                    {
+                      name: propertyText,
+                      type: propertyTypeDefinition,
+                      description: propertyDescription,
+                      example: propertyExample,
+                      enum: formattedEnum && formattedEnum.length > 0 ? formattedEnum : undefined,
+                    },
+                  ],
             },
-           }
+          }
         : node
+    )
+  );
+
+  // if editing, remove the old edge in case it was changed
+  if (editingPropertyIndex !== null) {
+    setEdges((prevEdges) =>
+      prevEdges.filter(
+        (edge) => !(
+          edge.source === selectedNodeId &&
+          edge.label === currentNode.data.properties[editingPropertyIndex]?.name
+        )
       )
     );
+  }
 
-    // if the property is a refernce to another object, connect them
-    if (referencedNode) {
-      setEdges((prevEdges) => [
-        ...prevEdges,
-        {
-          id: `edge-${selectedNodeId}-${referencedNode.id}`,
-          source: selectedNodeId,
-          target: referencedNode.id,
-          type: "smoothstep",
-          animated: false,
-          label: propertyText,
-          style: { stroke: "#888", strokeWidth: 2 },
-        },
-      ]);
+  // if the property is a reference to another object, connect them
+  if (referencedNode) {
+    setEdges((prevEdges) => [
+      ...prevEdges,
+      {
+        id: `edge-${selectedNodeId}-${referencedNode.id}`,
+        source: selectedNodeId,
+        target: referencedNode.id,
+        type: "smoothstep",
+        animated: false,
+        label: propertyText,
+        style: { stroke: "#888", strokeWidth: 2 },
+      },
+    ]);
+  }
+
+  // clear inputs
+  setPropertyText("");
+  setPropertyType("String");
+  setPropertyDescription("");
+  setPropertyExample("");
+  setEnumValues("");
+  setIsEnum(false);
+  setEditingPropertyIndex(null);
+
+  // close popup
+  closeSidebar();
+};
+
+
+  // edit a property function
+  const editProperty = (nodeId, propertyIndex) => {
+
+    const node = nodes.find((n) => n.id === nodeId);
+    if (!node) return;
+
+    const property = node.data.properties[propertyIndex];
+      if (!property) {
+      console.log("⚠️ Property not found! Check if propertyIndex is correct.");
+      return;
     }
 
-    // clear inputs
-    setPropertyText("");
-    setPropertyType("String");
-    setPropertyDescription("");
+    console.log("Editing property:", property);
 
-    // close popup
-    closeSidebar();
+    let extractedType = "string";
+    let isArrayType = false;
+
+    if (typeof property.type === "object") {
+      if (property.type.type === "array") {
+
+        // if it's an array, get the type
+        isArrayType = true;
+        extractedType = property.type.items.$ref
+          ? property.type.items.$ref.replace("#/components/schemas/", "")
+          : property.type.items.type;
+
+      } else if (property.type.$ref) {
+
+        // if it's a reference, get the object schema name
+        extractedType = property.type.$ref.replace("#/components/schemas/", "");
+
+      } else {
+
+        // default to a string
+        extractedType = "string";
+      }
+    }
+
+    setSelectedNodeId(nodeId);
+    setPropertyText(property.name);
+    setPropertyType(extractedType);
+    setPropertyDescription(property.description || "");
+    setPropertyExample(property.example || "");
+    setEnumValues(property.enum ? property.enum.join(", ") : "");
+    setIsEnum(property.enum ? true : false);
+    setIsArray(isArrayType);
+    setEditingPropertyIndex(propertyIndex);
+    setIsSidebarVisible(true);
   };
+
 
   // delete property function
   const deleteProperty = (nodeId, propertyIndex) => {
@@ -386,121 +555,17 @@ export default function App() {
   };
 
 
-
-
-  // import OpenAPI JSON function
-  /*
-  const importOpenAPI = () => {
-    try {
-      const schema = JSON.parse(importData);
-
-      // basic OpenAPI validation
-      if (!schema.openapi || !schema.info) {
-        window.alert("Invalid OpenAPI schema.");
-        return;
-      }
-
-      // clear anything on the screen
-      setNodes([]);
-      setPaths([]);
-
-      // create entities
-      if (schema.components && schema.components.schemas) {
-        const importedNodes = Object.entries(schema.components.schemas).map(
-          ([schemaName, schemaData], index) => {
-            return {
-              id: `node-${index + 1}`,
-              type: "entity",
-              position: { x: Math.random() * 400, y: Math.random() * 400 },
-              data: {
-                label: schemaName,
-                properties: schemaData.properties
-                  ? Object.entries(schemaData.properties).map(
-                      ([propName, propData]) => ({
-                        name: propName,
-                        type: propData.type,
-                        description: propData.description || "",
-                      })
-                    )
-                  : [],
-              },
-            };
-          }
-        );
-        setNodes(importedNodes);
-
-
-        // draw edges for nodes with references
-        // setting a small delay to make sure nodes are set before drawing lines
-        setTimeout(() => {
-          const importedEdges = [];
-          importedNodes.forEach((node) => {
-            node.data.properties.forEach((prop) => {
-              if (typeof prop.type === "object" && prop.type.$ref) {
-
-                // get name from $ref
-                const refSchemaName = prop.type.$ref.replace("#/components/schemas/", "");
-
-                // Find the target node by label
-                const targetNode = importedNodes.find((n) => n.data.label === refSchemaName);
-
-                if (targetNode) {
-                  importedEdges.push({
-                    id: `edge-${node.id}-${targetNode.id}`,
-                    source: node.id,
-                    target: targetNode.id,
-                    type: "smoothstep",
-                    animated: false,
-                    label: prop.name,
-                    style: { stroke: "#888", strokeWidth: 2 },
-                  });
-                }
-              }
-            });
-          });
-          setEdges(importedEdges);
-        }, 100);
-
-
-      }
-
-
-
-      // create paths
-      if (schema.paths) {
-        const importedPaths = [];
-        Object.entries(schema.paths).forEach(([pathKey, methodsObj]) => {
-          Object.entries(methodsObj).forEach(([method, methodObj]) => {
-            importedPaths.push({
-              path: pathKey,
-              method: method.toUpperCase(),
-              summary: methodObj.summary || "",
-              description: methodObj.description || "",
-              operationId: methodObj.operationId || "",
-              tag: (methodObj.tags && methodObj.tags[0]) || "",
-              parameters: methodObj.parameters || [],
-            });
-          });
-        });
-        setPaths(importedPaths);
-      }
-
-      setImportData("");
-      setIsImportPopupVisible(false);
-    } catch (error) {
-      console.error("Error importing JSON: ", error);
-      alert("Error importing JSON: " + error.message);
-    }
-  };
-  */
-
-
+  // import OpenAPI JSON function ------------------------------------
   const [importedNodes, setImportedNodes] = useState([]);
   const [importedEdges, setImportedEdges] = useState([]);
 
   const importOpenAPI = () => {
     try {
-      const schema = JSON.parse(importData);
+
+      const isYAML = importData.trim().startsWith("openapi:");
+      const schema = isYAML ? yaml.load(importData) : JSON.parse(importData);
+
+      //const schema = JSON.parse(importData);
 
       // validate OpenAPI description
       if (!schema.openapi || !schema.info || !schema.components?.schemas) {
@@ -508,11 +573,21 @@ export default function App() {
         return;
       }
 
+      setOpenAPIMetadata({
+        title: schema.info.title || "Untitled API",
+        version: schema.info.version || "1.0.0",
+        description: schema.info.description || "",
+        license: schema.info.license?.name || "",
+        authors: schema.info.contact?.name || "",
+        externalDocs: schema.externalDocs?.url || "",
+        servers: schema.servers || [{ url: "", description: "" }],
+      });
+
       // create object nodes
       const nodes = Object.entries(schema.components.schemas).map(([schemaName, schemaData], index) => ({
         id: `node-${index + 1}`,
         type: "entity",
-        position: { x: Math.random() * 400, y: Math.random() * 400 },
+        position: schema.nodePositions?.[schemaName] || { x: Math.random() * 400, y: Math.random() * 400 },
         data: {
           label: schemaName,
           properties: schemaData.properties
@@ -524,6 +599,22 @@ export default function App() {
             : [],
         },
       }));
+
+      // paths
+      const importedPaths = Object.entries(schema.paths).flatMap(([pathKey, methodsObj]) =>
+        Object.entries(methodsObj).map(([method, details]) => ({
+          path: pathKey,
+          method: method.toUpperCase(),
+          summary: details.summary || "",
+          description: details.description || "",
+          operationId: details.operationId || "",
+          tag: (details.tags && details.tags[0]) || "",
+          parameters: details.parameters || [],
+        }))
+      );
+
+      // store paths
+      setPaths(importedPaths);
 
       // store nodes
       setImportedNodes(nodes);
@@ -712,6 +803,73 @@ export default function App() {
             </select>
           </div>
 
+          {/* checkbox to mark property as an array */}
+          <div
+            style={{
+              width: "100%",
+              textAlign: "left",
+              paddingTop: "10px"
+            }}
+          >
+            <label style={{ fontSize: "16px" }}>
+              <input
+                type="checkbox"
+                checked={isArray}
+                onChange={(e) => setIsArray(e.target.checked)}
+              /> Make this property an array of values
+            </label>
+          </div>
+
+          {/* enum stuff */}
+          {/* enum checkbox - enums are only for strings and integers */}
+          {(["string", "integer"].includes(propertyType.toLowerCase())) && (
+            <div
+                style={{
+                  width: "100%",
+                  textAlign: "left",
+                  paddingTop: "20px",
+                }}
+            >
+              <label style={{ fontSize: "16px" }}>
+                <input
+                  type="checkbox"
+                  checked={isEnum}
+                  onChange={(e) => {
+                    setIsEnum(e.target.checked);
+                    if (!e.target.checked) setEnumValues("");
+                  }}
+                /> Enable Enum
+              </label>
+            </div>
+          )}
+
+          {/* enum input field - comma separated list (only visible if Enum is enabled) */}
+          {isEnum && (["string", "integer"].includes(propertyType.toLowerCase())) && (
+            <div
+              style={{
+                width: "100%",
+                textAlign: "left",
+                paddingTop: "10px",
+              }}
+            >
+              <label style={{ fontSize: "16px" }}>Enum Values (comma-separated list):</label>
+              <input
+                type="text"
+                value={enumValues}
+                onChange={(e) => setEnumValues(e.target.value)}
+                placeholder="e.g. active, inactive, pending"
+                style={{
+                  width: "95%",
+                  padding: "8px",
+                  marginTop: "10px",
+                  fontSize: "14px",
+                  borderRadius: "5px",
+                  border: "1px solid #ccc",
+                }}
+              />
+            </div>
+          )}
+
           {/* property description */}
           <div
             style={{
@@ -743,7 +901,29 @@ export default function App() {
                 fontSize: "14px",
                 borderRadius: "5px",
                 border: "1px solid #ccc",
-                height: "200px",
+                height: "20px",
+              }}
+            />
+          </div>
+
+          {/* property example */}
+          <div style={{ width: "100%", textAlign: "left", paddingTop: "20px" }}>
+            <label style={{ width: "100%", fontSize: "16px", textAlign: "left" }}>
+              Example:
+            </label>
+            <input
+              type="text"
+              value={propertyExample}
+              onChange={(e) => setPropertyExample(e.target.value)}
+              placeholder="Property example"
+              style={{
+                width: "95%",
+                padding: "8px",
+                marginTop: "15px",
+                marginBottom: "20px",
+                fontSize: "14px",
+                borderRadius: "5px",
+                border: "1px solid #ccc",
               }}
             />
           </div>
@@ -1310,7 +1490,7 @@ export default function App() {
                 <strong>X</strong>
               </button>
 
-              <h3>OpenAPI Data</h3>
+              <h3>OpenAPI Data {exportFormat.toUpperCase()}</h3>
 
             </div>
 
@@ -1354,7 +1534,7 @@ export default function App() {
                 }}
                 className="button-one button-two"
               >
-                Copy JSON
+                Copy {exportFormat.toUpperCase()}
               </button>
             </div>
           </div>
@@ -1383,155 +1563,370 @@ export default function App() {
       {/* sidebar content section */}
       <div className="sidebar-content">
 
-        {/* div for entity details */}
-        <div className="entity-details-div">
-          {/* create entity label */}
-          <label
-            className="header-one"
-          >
-            <strong>Create a New Entity:</strong>
-          </label>
+        {/* div for entity details ------------------------------------------*/}
+        <div className="accordion-section">
 
-          {/* entity name */}
-          <input
-            type="text"
-            value={entityLabel}
-            onChange={(e) => setEntityLabel(e.target.value)}
-            placeholder="Entity Name"
-            className="text-input"
-          />
+          <div className="accordion-header" onClick={toggleEntitySection}>
 
-          {/* add entity button */}
-          <button
-            onClick={addEntityNode}
-            className="button-one"
-          >
-            + Entity
-          </button>
-        </div>
-
-        {/* div for path details */}
-        <div className="sidebar-path-div">
-          {/* create add path label */}
-          <label
-            className="header-one"
-          >
-            <strong>Add Paths:</strong>
-          </label>
-
-          {/* show saved paths */}
-          <div className="saved-paths-div">
-            <h4
-              style={{
-                marginTop: "10px",
-                paddingBottom: "20px",
-                textAlign: "center",
-                borderBottom: "0.5px solid black",
-              }}
+            {/* create entity label */}
+            <label
+              className="header-one"
             >
-              Saved Paths:
-            </h4>
-            <ul>
-              {paths.map((pathObj, index) => (
-                <li key={index}
-                  style={{
-                    marginBottom: "20px",
-                  }}
-                >
-                  <div className="saved-path-item">
-                    <strong
-                      style={{
-                        fontSize: "14px",
-                      }}
-                    >
-                      {pathObj.method} {pathObj.path}
-                    </strong>
-                    <button
-                      onClick={() => deletePath(index)}
-                      style={{
-                        background: "white",
-                        color: "#eb4034",
-                        border: "none",
-                        padding: "2px 6px",
-                        fontSize: "14px",
-                        borderRadius: "5px",
-                        cursor: "pointer",
-                        marginLeft: "25px",
-                      }}
-                    >
-                      <strong>X</strong>
-                    </button>
-                  </div>
-                  <span style={{ fontSize: "11px", color: "#555", fontStyle: "italic" }}>
-                    <strong>Summary:</strong> {pathObj.summary || "No summary provided"}
-                  </span>
-                  <br />
-                  <span style={{ fontSize: "11px", color: "#555", fontStyle: "italic" }}>
-                    <strong>Description:</strong> {pathObj.description || "No description"}
-                  </span>
-                  <br />
-                  <span style={{ fontSize: "11px", color: "#555", fontStyle: "italic" }}>
-                    <strong>Operation ID:</strong> {pathObj.operationId || "No operationId"}
-                  </span>
-                  <br />
-                  <span style={{ fontSize: "11px", color: "#555", fontStyle: "italic" }}>
-                    <strong>Tag:</strong> {pathObj.tag || "No tag"}
-                  </span>
-                  {pathObj.parameters && pathObj.parameters.length > 0 && (
-                    <div style={{ marginTop: "5px", }}>
-                      <span
-                        style={{
-                          fontSize: "11px",
-                          color: "#555",
-                          fontStyle: "italic"
-                        }}
-                      >
-                        <strong>Parameters:</strong>
-                      </span>
-                      <ul style={{ paddingLeft: "20px" }}>
-                        {pathObj.parameters.map((param, paramIndex) => (
-                          <li key={paramIndex}
-                            style={{
-                              fontSize: "11px",
-                              color: "#555",
-                              fontStyle: "italic"
-                            }}
-                          >
-                            <strong>{param.name}</strong> ({param.type}) - {param.in}
-                            {param.description && `: ${param.description}`}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                </li>
-              ))}
-            </ul>
+              <strong>Create a New Entity:</strong>
+            </label>
+
+            <span>{isEntitySectionOpen ? "▲" : "▼"}</span>
+
           </div>
 
-          {/* add path button */}
-          <button
-            onClick={() => {
-              setIsMenuOpen(false);
+          {isEntitySectionOpen && (
 
-              // if on mobile, delay the popup until the sidebar is closed
-              if (window.innerWidth < 768) {
-                setTimeout(() => setIsPathPopupVisible(true), 300);
-              } else {
-                setIsPathPopupVisible(true);
-              }
-            }}
-            className="button-one"
-          >
-            + Add Path
-          </button>
+            <div className="accordion-content">
 
+              {/* entity name */}
+              <input
+                type="text"
+                value={entityLabel}
+                onChange={(e) => setEntityLabel(e.target.value)}
+                placeholder="Entity Name"
+                className="text-input"
+              />
+
+              {/* add entity button */}
+              <button
+                onClick={addEntityNode}
+                className="button-one"
+              >
+                + Entity
+              </button>
+
+            </div>
+          )}
         </div>
 
+        {/* div for path details --------------------------------------------*/}
+        <div className="accordion-section">
+
+          <div className="accordion-header" onClick={togglePathsSection}>
+
+            {/* create add path label */}
+            <label className="header-one">
+              <strong>Add Paths:</strong>
+            </label>
+
+            <span>{isPathsSectionOpen ? "▲" : "▼"}</span>
+
+          </div>
+
+          {isPathsSectionOpen && (
+            <div className="accordion-content">
+
+              {/* show saved paths */}
+              <div className="saved-paths-div">
+                <h4
+                  style={{
+                    marginTop: "10px",
+                    paddingBottom: "20px",
+                    textAlign: "center",
+                    borderBottom: "0.5px solid black",
+                  }}
+                >
+                  Saved Paths:
+                </h4>
+                <ul>
+                  {paths.map((pathObj, index) => (
+                    <li key={index} className="accordion-item">
+
+                      {/* Path Header - Click to Expand/Collapse */}
+                      <div
+                        className="path-header"
+                        onClick={() => togglePathDetails(index)}
+                        style={{
+                          cursor: "pointer",
+                          padding: "8px",
+                          background: expandedPathIndex === index ? "#ddd" : "#f5f5f5",
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          fontWeight: "bold",
+                          transition: "background 0.3s",
+                        }}
+                      >
+                        <span>
+                          {pathObj.method} {pathObj.path}
+                        </span>
+                        <span>{expandedPathIndex === index ? "▲" : "▼"}</span>
+                      </div>
+
+                      {/* Expanded Details */}
+                      {expandedPathIndex === index && (
+                        <div className="path-details" style={{ padding: "10px", background: "#fff" }}>
+                          <p><strong>Summary:</strong> {pathObj.summary || "No summary provided"}</p>
+                          <p><strong>Description:</strong> {pathObj.description || "No description"}</p>
+                          <p><strong>Operation ID:</strong> {pathObj.operationId || "No operationId"}</p>
+                          <p><strong>Tag:</strong> {pathObj.tag || "No tag"}</p>
+
+                          {/* Path Parameters */}
+                          {pathObj.parameters && pathObj.parameters.length > 0 ? (
+                            <div>
+                              <p><strong>Parameters:</strong></p>
+                              <ul style={{ paddingLeft: "20px" }}>
+                                {pathObj.parameters.map((param, paramIndex) => (
+                                  <li key={paramIndex} style={{ fontSize: "12px", color: "#555" }}>
+                                    <strong>{param.name}</strong> ({param.type}) - {param.in}
+                                    {param.description && `: ${param.description}`}
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          ) : (
+                            <p>No parameters</p>
+                          )}
+
+                          {/* Delete Path Button */}
+                          <button
+                            onClick={() => deletePath(index)}
+                            style={{
+                              background: "red",
+                              color: "white",
+                              border: "none",
+                              padding: "5px 8px",
+                              borderRadius: "5px",
+                              cursor: "pointer",
+                              marginTop: "5px",
+                            }}
+                          >
+                            Delete Path
+                          </button>
+                        </div>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              {/* add path button */}
+              <button
+                onClick={() => {
+                  setIsMenuOpen(false);
+
+                  // if on mobile, delay the popup until the sidebar is closed
+                  if (window.innerWidth < 768) {
+                    setTimeout(() => setIsPathPopupVisible(true), 300);
+                  } else {
+                    setIsPathPopupVisible(true);
+                  }
+                }}
+                className="button-one"
+              >
+                + Add Path
+              </button>
+
+            </div>
+          )}
+        </div>
+
+        {/* Accordion: Edit OpenAPI Metadata --------------------------------*/}
+        <div className="accordion-section">
+          <div className="accordion-header" onClick={() => setIsMetadataOpen(!isMetadataOpen)}>
+
+            <label
+              className="header-one"
+            >
+              <strong>API Metadata</strong>
+            </label>
+
+            <span>{isMetadataOpen ? "▲" : "▼"}</span>
+
+          </div>
+
+          {isMetadataOpen && (
+            <div className="accordion-content">
+
+              <div className="metadata-content-div">
+                <label className="small-label">Title:</label>
+                <input
+                  className="text-input"
+                  type="text"
+                  value={openAPIMetadata.title}
+                  onChange={(e) => setOpenAPIMetadata({ ...openAPIMetadata, title: e.target.value })}
+                  placeholder="API Title"
+                />
+              </div>
+
+              <div className="metadata-content-div">
+                <label className="small-label">Version:</label>
+                <input
+                  className="text-input"
+                  type="text"
+                  value={openAPIMetadata.version}
+                  onChange={(e) => setOpenAPIMetadata({ ...openAPIMetadata, version: e.target.value })}
+                  placeholder="API Version"
+                />
+              </div>
+
+              <div className="metadata-content-div">
+                <label className="small-label">License:</label>
+                <input
+                  className="text-input"
+                  type="text"
+                  value={openAPIMetadata.license}
+                  onChange={(e) => setOpenAPIMetadata({ ...openAPIMetadata, license: e.target.value })}
+                  placeholder="License (e.g., MIT)"
+                />
+              </div>
+
+              <div className="metadata-content-div">
+                <label className="small-label">Authors:</label>
+                <input
+                  className="text-input"
+                  type="text"
+                  value={openAPIMetadata.authors}
+                  onChange={(e) => setOpenAPIMetadata({ ...openAPIMetadata, authors: e.target.value })}
+                  placeholder="Author(s)"
+                />
+              </div>
+
+              <div className="metadata-content-div">
+                <label className="small-label">External Docs:</label>
+                <input
+                  className="text-input"
+                  type="text"
+                  value={openAPIMetadata.externalDocs}
+                  onChange={(e) => setOpenAPIMetadata({ ...openAPIMetadata, externalDocs: e.target.value })}
+                  placeholder="External Documentation URL"
+                />
+              </div>
+
+              <div className="metadata-content-div">
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    width: "100%",
+                  }}
+                >
+                  <label className="small-label">Servers:</label>
+                  <button
+                    className="add-server-button"
+                    onClick={() =>
+                      setOpenAPIMetadata({
+                        ...openAPIMetadata,
+                        servers: [...openAPIMetadata.servers, { url: "", description: "" }],
+                      })
+                    }
+                  >
+                    + Add Server
+                  </button>
+                </div>
+
+                {openAPIMetadata.servers.map((server, index) => (
+                  <div className="server-list-div" key={index}>
+
+
+                    <div className="metadata-server-div">
+
+                      <div
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          width: "100%",
+                        }}
+                      >
+
+                        <label className="small-label-two">
+                          <strong>
+                            {index === 0 ? "Default Server" : `Server ${index + 1}`}
+                          </strong>
+                        </label>
+
+
+                        {/* delete server button */}
+                        {index > 0 && (
+                          <button
+                            onClick={() => {
+                              const newServers = openAPIMetadata.servers.filter((_, i) => i !== index);
+                              setOpenAPIMetadata({ ...openAPIMetadata, servers: newServers });
+                            }}
+                            className="delete-server-button"
+                          >
+                            X
+                          </button>
+                        )}
+
+                      </div>
+
+                      <label className="small-label-two">URL:</label>
+                      <input
+                        className="text-input"
+                        type="text"
+                        value={server.url}
+                        onChange={(e) => {
+                          const newServers = [...openAPIMetadata.servers];
+                          newServers[index].url = e.target.value;
+                          setOpenAPIMetadata({ ...openAPIMetadata, servers: newServers });
+                        }}
+                        placeholder="Server URL"
+                      />
+
+                      <label className="small-label-two">Description:</label>
+                      <input
+                        className="text-input"
+                        type="text"
+                        value={server.description}
+                        onChange={(e) => {
+                          const newServers = [...openAPIMetadata.servers];
+                          newServers[index].description = e.target.value;
+                          setOpenAPIMetadata({ ...openAPIMetadata, servers: newServers });
+                        }}
+                        placeholder="Server Description"
+                      />
+                    </div>
+
+                  </div>
+                ))}
+              </div>
+
+              {/* save metadata button */}
+              <button
+                onClick={() => {
+                  setIsMetadataOpen(false);
+                }}
+                className="button-one"
+              >
+                Save Metadata
+              </button>
+
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* sidebar footer section */}
+      {/* sidebar footer section --------------------------------------------*/}
       <div className="sidebar-footer">
+
+        {/* export format selection */}
+        <div
+          style={{
+            marginTop: "20px",
+          }}
+        >
+          <label className="small-label">Export Format:</label>
+          <select className="selection-dropdown" value={exportFormat} onChange={(e) => setExportFormat(e.target.value)}>
+            <option value="json">JSON</option>
+            <option value="yaml">YAML</option>
+          </select>
+        </div>
+
+        {/* export OpenAPI schema button */}
+        <button
+            onClick={showExportPopup}
+            className="export-button"
+        >
+            <strong>Export</strong>
+        </button>
 
         {/* import OpenAPI json button */}
         <button
@@ -1541,16 +1936,9 @@ export default function App() {
             }}
             className="export-button import-button"
         >
-            <strong>Import JSON</strong>
+            <strong>Import</strong>
         </button>
 
-        {/* export OpenAPI schema button */}
-        <button
-            onClick={showExportPopup}
-            className="export-button"
-        >
-            <strong>Export</strong>
-        </button>
       </div>
 
     </div>
@@ -1636,7 +2024,12 @@ export default function App() {
 
         nodes={nodes.map((node) => ({
           ...node,
-          data: { ...node.data, onAddProperty: () => toggleSidebar(node.id), onDeleteProperty: deleteProperty },
+          data: {
+            ...node.data,
+            onAddProperty: () => toggleSidebar(node.id),
+            onDeleteProperty: deleteProperty,
+            onEditProperty: (propertyIndex) => editProperty(node.id, propertyIndex),
+          },
         }))}
 
         edges={edges}

@@ -47,15 +47,43 @@ const CustomEntityNode = ({ id, data, isConnectable }) => {
                 }}
                 key={index}
               >
-                <span style={{ fontSize: "14px", color: "black" }}>
+                <span>
                   {prop.name}
-                  <span style={{ fontSize: "12px", fontStyle: "italic", color: "gray", paddingLeft: "5px" }}>
-                    ({typeof prop.type === "object" && prop.type.$ref
-                      ? `Reference to ${prop.type.$ref.replace("#/components/schemas/", "")}`
+                  <span
+                    style={{
+                      fontSize: "14px",
+                      fontStyle: "italic",
+                      color: "gray"
+                    }}
+                  >
+                    (
+                    {typeof prop.type === "object"
+                      ? prop.type.type === "array"
+                        ? `Array of ${prop.type.items.$ref ? prop.type.items.$ref.replace("#/components/schemas/", "") : prop.type.items.type}`
+                        : prop.type.$ref
+                          ? `Reference to ${prop.type.$ref.replace("#/components/schemas/", "")}`
+                          : "Unknown Type"
                       : prop.type}
                     )
                   </span>
                 </span>
+
+                {/* Edit Button */}
+                <button
+                  onClick={() => data.onEditProperty(index)}
+                  style={{
+                    background: "#008CBA",
+                    color: "white",
+                    border: "none",
+                    padding: "5px 8px",
+                    fontSize: "12px",
+                    borderRadius: "5px",
+                    cursor: "pointer",
+                    marginRight: "5px",
+                  }}
+                >
+                  ✏️
+                </button>
 
                 <button
                   onClick={() => data.onDeleteProperty(id, index)}
