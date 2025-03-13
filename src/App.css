@@ -108,7 +108,7 @@
   width: 100%;
 }
 
-.add-server-button {
+.add-server-button, .edit-property-button {
   width: auto;
   padding: 7px;
   background: white;
@@ -121,9 +121,16 @@
   margin-top: 5px;
 }
 
-.add-server-button:hover {
+.add-server-button:hover, .edit-property-button:hover {
   background: #454545;
   color: white;
+}
+
+.edit-property-button {
+  padding: 5px 10px 5px 10px;
+  font-size: 12px;
+  font-weight: 450;
+  margin-left: 20px;
 }
 
 .header-main {
@@ -395,6 +402,12 @@
   border: 0.5px solid black;
   margin-left: 20px;
   width: 55%;
+}
+
+.property-popup-spacing-div {
+  display: flex;
+  width: auto;
+  padding: 5px 0px 5px 0px;
 }
 
 

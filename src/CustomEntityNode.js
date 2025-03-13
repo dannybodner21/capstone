@@ -2,6 +2,9 @@ import React, { useState } from "react";
 import { Handle, Position } from "@xyflow/react";
 
 const CustomEntityNode = ({ id, data, isConnectable }) => {
+
+  const [hoveredProperty, setHoveredProperty] = useState(null);
+
   return (
 
     <div
@@ -47,6 +50,24 @@ const CustomEntityNode = ({ id, data, isConnectable }) => {
                 }}
                 key={index}
               >
+
+                {/* add info circle to properties display */}
+                <span
+                  style={{
+                    width: "10px",
+                    height: "10px",
+                    backgroundColor: "#32bf5e",
+                    border: "1px solid #80ffa8",
+                    borderRadius: "50%",
+                    cursor: "pointer",
+                    fontStyle: "italic",
+                  }}
+                  onMouseEnter={() => setHoveredProperty(index)}
+                  onMouseLeave={() => setHoveredProperty(null)}
+                >
+                  {/* TODO: should there be an 'i' in the circle? */}
+                </span>
+
                 <span>
                   {prop.name}
                   <span
@@ -71,18 +92,9 @@ const CustomEntityNode = ({ id, data, isConnectable }) => {
                 {/* Edit Button */}
                 <button
                   onClick={() => data.onEditProperty(index)}
-                  style={{
-                    background: "#008CBA",
-                    color: "white",
-                    border: "none",
-                    padding: "5px 8px",
-                    fontSize: "12px",
-                    borderRadius: "5px",
-                    cursor: "pointer",
-                    marginRight: "5px",
-                  }}
+                  className="edit-property-button"
                 >
-                  ✏️
+                  Edit
                 </button>
 
                 <button
@@ -91,15 +103,165 @@ const CustomEntityNode = ({ id, data, isConnectable }) => {
                     background: "white",
                     color: "#eb4034",
                     border: "none",
-                    padding: "2px 6px",
-                    fontSize: "14px",
+                    padding: "0px 0px",
+                    fontSize: "15px",
                     borderRadius: "5px",
                     cursor: "pointer",
-                    marginLeft: "25px",
+                    marginLeft: "5px",
                   }}
                 >
                   <strong>X</strong>
                 </button>
+
+                {/* property details hover box */}
+                {hoveredProperty === index && (
+                  <div
+                    style={{
+                      position: "absolute",
+                      right: "105%",
+                      top: "30px",
+                      width: "auto",
+                      maxWidth: "350px",
+                      minWidth: "250px",
+                      height: "auto",
+                      maxHeight: "400px",
+                      minHeight: "150px",
+                      backgroundColor: "white",
+                      border: "0.5px solid black",
+                      borderRadius: "8px",
+                      padding: "20px",
+                      boxShadow: "2px 2px 10px rgba(0, 0, 0, 0.2)",
+                      zIndex: 100,
+                    }}
+                  >
+                    <p
+                      style={{
+                        fontWeight: "bold"
+                      }}
+                    >
+                      Property Details:
+                    </p>
+                    <hr/>
+
+                      {/* div to hold all the property popup details */}
+                      <div
+                        style={{
+                          paddingLeft: "20px",
+                          paddingTop: "10px",
+                        }}
+                      >
+
+                        {/* Name: */}
+                        <div className="property-popup-spacing-div">
+                          <label style={{width:"100px"}}>
+                            <strong>Name:</strong>
+                          </label>
+                          <span>
+                            {prop.name}
+                          </span>
+                        </div>
+
+                        {/* Type: */}
+                        <div className="property-popup-spacing-div">
+                          <label style={{width:"100px"}}>
+                            <strong>Type:</strong> {" "}
+                          </label>
+                          <span>
+                            {typeof prop.type === "object"
+                              ? prop.type.type === "array"
+                                ? `Array of ${
+                                    prop.type.items?.$ref
+                                      ? prop.type.items.$ref.replace("#/components/schemas/", "")
+                                      : prop.type.items?.type || "Unknown"
+                                  }`
+                                : prop.type.$ref
+                                ? `Reference to ${prop.type.$ref.replace("#/components/schemas/", "")}`
+                                : "Unknown Type"
+                              : prop.type}
+                          </span>
+                        </div>
+
+                        {/* Is Array: */}
+                        <div className="property-popup-spacing-div">
+                          <label style={{width:"100px"}}>
+                            <strong>Is Array:</strong>
+                          </label>
+                          <span>
+                            {typeof prop.type === "object" && prop.type.type === "array" ? "Yes" : "No"}
+                          </span>
+                        </div>
+
+                        {/* Is Enum: */}
+                        {!prop.enum && (
+                          <div className="property-popup-spacing-div">
+                            <label style={{width:"100px"}}>
+                              <strong>Is Enum:</strong>
+                            </label>
+                            <span>
+                              No
+                            </span>
+                          </div>
+                        )}
+
+                        {/* if enum, display the enum values */}
+                        {prop.enum && prop.enum.length > 0 && (
+                          <div style={{paddingBottom: "5px"}}>
+
+                            <div className="property-popup-spacing-div" style={{marginBottom:"5px"}}>
+                              <label style={{width:"100px"}}>
+                                <strong>Is Enum:</strong>
+                              </label>
+                              <span>
+                                Yes
+                              </span>
+                            </div>
+
+                            <label>
+                              <strong>Enum Values:</strong>
+                            </label>
+
+                            <ul>
+                              {prop.enum.map((value, i) => (
+                                <li
+                                  key={i}
+                                  style={{
+                                    fontSize: "12px",
+                                    color: "#333",
+                                    paddingLeft: "60px",
+                                    paddingTop: "5px",
+                                  }}
+                                >
+                                  {value}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+
+                        {/* Description: */}
+                        <div className="property-popup-spacing-div">
+                          <label style={{width:"100px"}}>
+                            <strong>Description:</strong>
+                          </label>
+                          <span>
+                            {prop.description ? prop.description : "None"}
+                          </span>
+                        </div>
+
+                        {/* Example */}
+                        <div className="property-popup-spacing-div">
+                          <label style={{width:"100px"}}>
+                            <strong>Example:</strong>
+                          </label>
+                          <span>
+                            {prop.example ? prop.example : "None"}
+                          </span>
+                        </div>
+
+                      </div>
+
+                  </div>
+                )}
 
               </li>
             ))}

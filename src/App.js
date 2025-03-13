@@ -626,8 +626,8 @@ export default function App() {
       setIsImportPopupVisible(false);
 
     } catch (error) {
-      console.error("Error importing JSON: ", error);
-      alert("Error importing JSON: " + error.message);
+      console.error("Error importing OpenAPI description: ", error);
+      alert("Error importing OpenAPI description: " + error.message);
     }
   };
 
